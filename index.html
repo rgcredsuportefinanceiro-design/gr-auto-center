@@ -1020,7 +1020,7 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
           </div>
           <div class="panel">
             <div class="panel-head"><h3>Vendas Lançadas</h3><input id="sales-search" class="search" placeholder="Buscar venda por cliente, código ou serviço" /></div>
-            <div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Código</th><th>Serviço</th><th>Pgto</th><th>Total</th><th>Ações</th></tr></thead><tbody id="sales-table"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Código</th><th>Serviço</th><th>Pgto</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead><tbody id="sales-table"></tbody></table></div>
           </div>
         </div>
 
@@ -2125,7 +2125,7 @@ function renderSales() {
   const list = state.sales.filter(s => `${s.clienteNome} ${s.serviceCodigo} ${s.serviceNome}`.toLowerCase().includes(term));
   fillTable('sales-table', list, s => {
     const idx = state.sales.indexOf(s);
-    return `<tr><td>${s.data}</td><td>${escapeHtml(s.clienteNome)}</td><td>${escapeHtml(s.serviceCodigo || '')}</td><td>${escapeHtml(s.serviceNome)}</td><td>${escapeHtml(s.pagamento || '')}</td><td>${currency(s.total)}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('sales',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('sales',${idx})`}])}</td></tr>`;
+    return `<tr><td>${s.data}</td><td>${escapeHtml(s.clienteNome)}</td><td>${escapeHtml(s.serviceCodigo || '')}</td><td>${escapeHtml(s.serviceNome)}</td><td>${escapeHtml(s.pagamento || '')}</td><td>${makeBadge(s.status || 'Pendente')}</td><td>${currency(s.total)}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('sales',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('sales',${idx})`}])}</td></tr>`;
   });
 }
 
@@ -2155,22 +2155,22 @@ function countNewThisMonth(list, field) { const m = today().slice(0,7); return l
 function getDayCash(tipo) { return state.cash.filter(c => c.tipo === tipo && c.data === today()).reduce((s,c)=>s+Number(c.valor||0),0); }
 function getMonthCash(tipo) { const m = today().slice(0,7); return state.cash.filter(c => c.tipo === tipo && (c.data || '').slice(0,7) === m).reduce((s,c)=>s+Number(c.valor||0),0); }
 function percentText(a,b, positive) { if (!a || !b) return positive ? '+0%' : '+0%'; const p = Math.round((a / Math.max(b,1)) * 100); return `${positive ? '+' : '+'}${p}%`; }
-function getTicketMedio() { const totalEntries = state.workOrders.filter(o => o.status === 'Concluído').length + state.sales.length; const total = state.workOrders.filter(o => o.status === 'Concluído').reduce((s,o)=>s+Number(o.total||0),0) + state.sales.reduce((s,o)=>s+Number(o.total||0),0); return totalEntries ? total / totalEntries : 0; }
+function getTicketMedio() { const manualSales = state.sales.filter(s => !s.sourceOSId); const totalEntries = state.workOrders.filter(o => o.status === 'Concluído').length + manualSales.length; const total = state.workOrders.filter(o => o.status === 'Concluído').reduce((s,o)=>s+Number(o.total||0),0) + manualSales.reduce((s,o)=>s+Number(o.total||0),0); return totalEntries ? total / totalEntries : 0; }
 function getTopServices() {
   const map = {};
   state.workOrders.filter(o => o.status === 'Concluído').forEach(o => (o.items || []).forEach(i => map[i.nome] = (map[i.nome] || 0) + Number(i.qtd || 0)));
-  state.sales.forEach(s => { map[s.serviceNome] = (map[s.serviceNome] || 0) + Number(s.qtd || 0); });
+  state.sales.filter(s => !s.sourceOSId).forEach(s => { map[s.serviceNome] = (map[s.serviceNome] || 0) + Number(s.qtd || 0); });
   return Object.entries(map).sort((a,b) => b[1] - a[1]);
 }
 function getTopClients() {
   const map = {};
   state.workOrders.filter(o => o.status === 'Concluído').forEach(o => map[o.clienteNome] = (map[o.clienteNome] || 0) + Number(o.total || 0));
-  state.sales.forEach(s => map[s.clienteNome] = (map[s.clienteNome] || 0) + Number(s.total || 0));
+  state.sales.filter(s => !s.sourceOSId).forEach(s => map[s.clienteNome] = (map[s.clienteNome] || 0) + Number(s.total || 0));
   return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
 }
 function getAllSaleHistory() {
   const fromOs = state.workOrders.filter(o => o.status === 'Concluído').map(o => ({ data: o.dataEntrada, clienteId: o.clienteId, clienteNome: o.clienteNome, numero: o.numero, descricao: firstItemName(o.items), total: o.total }));
-  const fromSales = state.sales.map(s => ({ data: s.data, clienteId: s.clienteId, clienteNome: s.clienteNome, numero: `VENDA-${s.id.slice(-4).toUpperCase()}`, descricao: `${s.serviceCodigo ? s.serviceCodigo + ' - ' : ''}${s.serviceNome}`, total: s.total }));
+  const fromSales = state.sales.filter(s => !s.sourceOSId).map(s => ({ data: s.data, clienteId: s.clienteId, clienteNome: s.clienteNome, numero: `VENDA-${s.id.slice(-4).toUpperCase()}`, descricao: `${s.serviceCodigo ? s.serviceCodigo + ' - ' : ''}${s.serviceNome}`, total: s.total }));
   return [...fromOs, ...fromSales].sort((a,b) => (a.data < b.data ? 1 : -1));
 }
 function getClientHistory(clientId) {
@@ -2244,9 +2244,37 @@ function createReceivableFromOS(os) {
   state.receivables.unshift({ id: uid(), descricao: `Recebimento da ${os.numero}`, clienteId: os.clienteId, clienteNome: os.clienteNome, vencimento: os.previsaoEntrega || today(), valor: Number(os.total || 0), status: 'Aberto', pagamento: os.pagamento || 'A combinar', documento: os.numero, observacoes: 'Gerado automaticamente pela OS concluída.' });
   saveState(); renderAll();
 }
+function createSaleFromOS(os) {
+  const exists = state.sales.some(s => s.sourceOSId === os.id || s.sourceOSNumero === os.numero);
+  if (exists) return;
+  const first = (os.items || [])[0] || {};
+  state.sales.unshift({
+    id: uid(),
+    data: today(),
+    clienteId: os.clienteId,
+    clienteNome: os.clienteNome,
+    serviceId: first.serviceId || '',
+    serviceCodigo: os.numero,
+    serviceNome: `OS ${os.numero} - ${firstItemName(os.items)}`,
+    qtd: 1,
+    valor: Number(os.total || 0),
+    total: Number(os.total || 0),
+    pagamento: os.pagamento || 'A combinar',
+    status: 'Pendente',
+    observacoes: 'Venda gerada automaticamente ao concluir a OS.',
+    sourceOSId: os.id,
+    sourceOSNumero: os.numero
+  });
+}
+
 window.markOSDone = function(id) {
   const os = state.workOrders.find(o => o.id === id); if (!os) return;
-  os.status = 'Concluído'; saveState(); createReceivableFromOS(os); renderAll();
+  if (os.status === 'Concluído') return;
+  os.status = 'Concluído';
+  createSaleFromOS(os);
+  createReceivableFromOS(os);
+  saveState();
+  renderAll();
 };
 window.markPayablePaid = function(id) {
   const item = state.payables.find(p => p.id === id); if (!item) return;
@@ -2261,7 +2289,12 @@ window.markPayablePaid = function(id) {
 window.markReceivableReceived = function(id) {
   const item = state.receivables.find(r => r.id === id); if (!item) return;
   if (item.status === 'Recebido') return;
-  item.status = 'Recebido'; saveState(); createCashMovement('Entrada', today(), item.descricao, item.valor, item.pagamento, item.clienteNome, 'Conta a receber'); renderAll();
+  item.status = 'Recebido';
+  const linkedSale = state.sales.find(s => s.sourceOSNumero === item.documento || s.sourceOSId === item.sourceOSId);
+  if (linkedSale) linkedSale.status = 'Recebido';
+  saveState();
+  createCashMovement('Entrada', today(), item.descricao, item.valor, item.pagamento, item.clienteNome, 'Conta a receber');
+  renderAll();
 };
 function createCashMovement(tipo, data, descricao, valor, pagamento, referencia, categoria) {
   state.cash.unshift({ id: uid(), data, tipo, categoria, descricao, valor: Number(valor || 0), pagamento, referencia, documento: '', observacoes: 'Lançamento automático' }); saveState();
