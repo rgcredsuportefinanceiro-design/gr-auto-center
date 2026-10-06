@@ -650,7 +650,12 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
               <input type="hidden" name="editIndex" />
               <label>Código do Serviço<input name="codigo" placeholder="Ex: TRO-001" required /></label>
               <label>Serviço<input name="nome" required /></label>
+              <label>Peça / Componente<input name="peca" placeholder="Ex.: pivô, bandeja, amortecedor" /></label>
               <label>Categoria<input name="categoria" /></label>
+              <label>Marca<input name="marca" placeholder="Ex.: Cofap, Nakata, TRW" /></label>
+              <label>Lado<select name="lado"><option value="">Não se aplica</option><option>Direito</option><option>Esquerdo</option><option>Par</option></select></label>
+              <label>Posição<select name="posicao"><option value="">Não se aplica</option><option>Dianteiro</option><option>Traseiro</option></select></label>
+              <label>Localização<select name="nivel"><option value="">Não se aplica</option><option>Superior</option><option>Inferior</option></select></label>
               <label>Valor de Venda<input name="valor" type="number" step="0.01" min="0" required /></label>
               <label>Custo Estimado<input name="custo" type="number" step="0.01" min="0" /></label>
               <label>Tempo Médio<input name="tempo" /></label>
@@ -661,7 +666,7 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
           </div>
           <div class="panel">
             <div class="panel-head"><h3>Serviços Cadastrados</h3><input id="servicos-search" class="search" placeholder="Buscar por código, nome ou categoria" /></div>
-            <div class="table-wrap"><table><thead><tr><th>Código</th><th>Serviço</th><th>Categoria</th><th>Valor</th><th>Tempo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="servicos-table"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Código</th><th>Serviço / Peça</th><th>Lado</th><th>Posição</th><th>Sup./Inf.</th><th>Marca</th><th>Valor</th><th>Tempo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="servicos-table"></tbody></table></div>
           </div>
         </div>
       </section>
@@ -685,8 +690,15 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
                 <button type="button" id="add-orc-item" class="ghost-btn">Adicionar Serviço</button>
                 <button type="button" id="quick-add-orc-service" class="ghost-btn">+ Novo Serviço</button>
               </div>
+              <div class="full inline-builder advanced-builder">
+                <input id="orc-product-filter" placeholder="Buscar peça/produto por nome, código, marca..." />
+                <select id="orc-product-select"></select>
+                <input id="orc-product-qtd" type="number" min="1" value="1" />
+                <input id="orc-product-valor" type="number" min="0" step="0.01" placeholder="Valor unit." />
+                <button type="button" id="add-orc-product" class="ghost-btn">Adicionar Peça</button>
+              </div>
               <div class="full"><div id="orc-history" class="history-box"></div></div>
-              <div class="full table-wrap compact"><table><thead><tr><th>Item</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th></th></tr></thead><tbody id="orc-items-body"></tbody></table></div>
+              <div class="full table-wrap compact"><table><thead><tr><th>Tipo</th><th>Descrição completa</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th></th></tr></thead><tbody id="orc-items-body"></tbody></table></div>
               <div class="full totals-bar"><strong>Total do orçamento: <span id="orc-total">R$ 0,00</span></strong></div>
               <div class="full form-actions"><button class="primary-btn" type="submit">Salvar Orçamento</button></div>
             </form>
@@ -748,8 +760,15 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
                 <button type="button" id="add-os-item" class="ghost-btn">Adicionar Serviço</button>
                 <button type="button" id="quick-add-os-service" class="ghost-btn">+ Novo Serviço</button>
               </div>
+              <div class="full inline-builder advanced-builder">
+                <input id="os-product-filter" placeholder="Buscar peça/produto por nome, código, marca..." />
+                <select id="os-product-select"></select>
+                <input id="os-product-qtd" type="number" min="1" value="1" />
+                <input id="os-product-valor" type="number" min="0" step="0.01" placeholder="Valor unit." />
+                <button type="button" id="add-os-product" class="ghost-btn">Adicionar Peça</button>
+              </div>
               <div class="full"><div id="os-history" class="history-box"></div></div>
-              <div class="full table-wrap compact"><table><thead><tr><th>Item</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th></th></tr></thead><tbody id="os-items-body"></tbody></table></div>
+              <div class="full table-wrap compact"><table><thead><tr><th>Tipo</th><th>Descrição completa</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th></th></tr></thead><tbody id="os-items-body"></tbody></table></div>
               <label class="full">Observações<textarea name="observacoes" rows="2"></textarea></label>
               <div class="full totals-bar"><strong>Total da OS: <span id="os-total">R$ 0,00</span></strong></div>
               <div class="full form-actions"><button class="primary-btn" type="submit">Salvar Ordem de Serviço</button></div>
@@ -796,18 +815,23 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
               <label>Peça<input name="nome" required /></label>
               <label>Código<input name="codigo" /></label>
               <label>Categoria<input name="categoria" /></label>
+              <label>Marca<input name="marca" placeholder="Ex.: Cofap, Nakata, Monroe" /></label>
+              <label>Lado<select name="lado"><option value="">Não se aplica</option><option>Direito</option><option>Esquerdo</option><option>Par</option></select></label>
+              <label>Posição<select name="posicao"><option value="">Não se aplica</option><option>Dianteiro</option><option>Traseiro</option></select></label>
+              <label>Localização<select name="nivel"><option value="">Não se aplica</option><option>Superior</option><option>Inferior</option></select></label>
               <label>Quantidade<input name="quantidade" type="number" min="0" required /></label>
               <label>Estoque Mínimo<input name="minimo" type="number" min="0" /></label>
               <label>Custo Unitário<input name="custo" type="number" step="0.01" min="0" /></label>
               <label>Preço de Venda<input name="precoVenda" type="number" step="0.01" min="0" /></label>
               <label>Fornecedor<input name="fornecedor" /></label>
+              <label class="full">Descrição / Aplicação<textarea name="descricao" rows="2" placeholder="Ex.: aplicação, modelo, observações técnicas da peça"></textarea></label>
               <label class="full">Observações<textarea name="observacoes" rows="2"></textarea></label>
               <div class="full form-actions"><button class="primary-btn" type="submit">Salvar Peça</button></div>
             </form>
           </div>
           <div class="panel">
             <div class="panel-head"><h3>Estoque</h3><input id="estoque-search" class="search" placeholder="Buscar peça" /></div>
-            <div class="table-wrap"><table><thead><tr><th>Peça</th><th>Código</th><th>Qtd</th><th>Mínimo</th><th>Venda</th><th>Status</th><th>Ações</th></tr></thead><tbody id="estoque-table"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Peça</th><th>Código</th><th>Lado</th><th>Posição</th><th>Sup./Inf.</th><th>Marca</th><th>Qtd</th><th>Venda</th><th>Status</th><th>Ações</th></tr></thead><tbody id="estoque-table"></tbody></table></div>
           </div>
         </div>
       </section>
@@ -1371,6 +1395,7 @@ function resetForm(id) {
 function formDataObj(form) { return Object.fromEntries(new FormData(form).entries()); }
 function findClient(id) { return state.clients.find(c => c.id === id); }
 function findService(id) { return state.services.find(s => s.id === id); }
+function findProduct(id) { return state.inventory.find(i => i.id === id); }
 function makeBadge(text) {
   const t = (text || '').toLowerCase();
   let cls = 'badge-gray';
@@ -1481,6 +1506,11 @@ function bindHelpers() {
   ['orc-service-filter','os-service-filter','sales-service-filter'].forEach(id => { const el = qs(id); if (el) el.addEventListener('input', renderSelects); });
   qs('add-orc-item').addEventListener('click', addBudgetItem);
   qs('add-os-item').addEventListener('click', addOSItem);
+  if (qs('add-orc-product')) qs('add-orc-product').addEventListener('click', addBudgetProduct);
+  if (qs('add-os-product')) qs('add-os-product').addEventListener('click', addOSProduct);
+  if (qs('orc-product-select')) qs('orc-product-select').addEventListener('change', () => fillProductPrice('orc-product-select','orc-product-valor'));
+  if (qs('os-product-select')) qs('os-product-select').addEventListener('change', () => fillProductPrice('os-product-select','os-product-valor'));
+  ['orc-product-filter','os-product-filter'].forEach(id => { const el=qs(id); if(el) el.addEventListener('input', renderSelects); });
   qs('prefill-sale-item').addEventListener('click', () => fillServicePrice('sales-service-select', 'sales-item-valor'));
   ['quick-add-orc-service','quick-add-os-service','quick-add-sales-service'].forEach((id) => { const el = qs(id); if (el) el.addEventListener('click', () => quickAddService(id)); });
 }
@@ -1529,7 +1559,7 @@ function saveService(e) {
   const o = formDataObj(e.target);
   const rec = {
     id: o.editIndex !== '' ? state.services[Number(o.editIndex)].id : uid(),
-    codigo: o.codigo, nome: o.nome, categoria: o.categoria, valor: Number(o.valor || 0), custo: Number(o.custo || 0),
+    codigo: o.codigo, nome: o.nome, peca: o.peca || '', categoria: o.categoria, marca: o.marca || '', lado: o.lado || '', posicao: o.posicao || '', nivel: o.nivel || '', valor: Number(o.valor || 0), custo: Number(o.custo || 0),
     tempo: o.tempo, descricao: o.descricao, ativo: o.ativo === 'true'
   };
   upsert('services', rec, o.editIndex); resetForm('servico-form');
@@ -1587,8 +1617,8 @@ function saveInventory(e) {
   const o = formDataObj(e.target);
   const rec = {
     id: o.editIndex !== '' ? state.inventory[Number(o.editIndex)].id : uid(),
-    nome: o.nome, codigo: o.codigo, categoria: o.categoria, quantidade: Number(o.quantidade || 0), minimo: Number(o.minimo || 0),
-    custo: Number(o.custo || 0), precoVenda: Number(o.precoVenda || 0), fornecedor: o.fornecedor, observacoes: o.observacoes
+    nome: o.nome, codigo: o.codigo, categoria: o.categoria, marca: o.marca || '', lado: o.lado || '', posicao: o.posicao || '', nivel: o.nivel || '', quantidade: Number(o.quantidade || 0), minimo: Number(o.minimo || 0),
+    custo: Number(o.custo || 0), precoVenda: Number(o.precoVenda || 0), fornecedor: o.fornecedor, descricao: o.descricao || '', observacoes: o.observacoes
   };
   upsert('inventory', rec, o.editIndex); resetForm('estoque-form');
 }
@@ -1729,28 +1759,58 @@ function fillServicePrice(selectId, inputId) {
   const s = findService(qs(selectId).value); if (s) qs(inputId).value = s.valor;
   if (selectId === 'sales-service-select') { const qtd = Number(qs('sales-item-qtd')?.value || 1); qs('sales-total').textContent = currency(qtd * Number(qs(inputId).value || 0)); }
 }
+function fillProductPrice(selectId,inputId) {
+  const p=findProduct(qs(selectId)?.value); if(p && qs(inputId)) qs(inputId).value=Number(p.precoVenda||0);
+}
+function itemDetails(item) {
+  const parts = [];
+  const peca = item.peca || '';
+  if (peca && peca !== item.nome) parts.push(peca);
+  if (item.lado) parts.push(item.lado);
+  if (item.posicao) parts.push(item.posicao);
+  if (item.nivel) parts.push(item.nivel);
+  if (item.marca) parts.push('Marca: ' + item.marca);
+  if (item.descricao) parts.push(item.descricao);
+  return parts.join(' • ');
+}
+function serviceToItem(service,qtd,valor) {
+  return { itemType:'Serviço', serviceId:service.id, nome:service.nome, peca:service.peca||'', lado:service.lado||'', posicao:service.posicao||'', nivel:service.nivel||'', marca:service.marca||'', descricao:service.descricao||'', codigo:service.codigo||'', qtd, valor, total:qtd*valor };
+}
+function productToItem(product,qtd,valor) {
+  return { itemType:'Peça', productId:product.id, nome:product.nome, peca:product.nome||'', lado:product.lado||'', posicao:product.posicao||'', nivel:product.nivel||'', marca:product.marca||'', descricao:product.descricao||product.observacoes||'', codigo:product.codigo||'', qtd, valor, total:qtd*valor };
+}
 function addBudgetItem() {
   const serviceId = qs('orc-service-select').value; const service = findService(serviceId);
   if (!service) return;
   const qtd = Number(qs('orc-item-qtd').value || 1); const valor = Number(qs('orc-item-valor').value || service.valor);
-  tempBudgetItems.push({ serviceId, nome: service.nome, qtd, valor, total: qtd * valor }); renderBudgetItems();
+  tempBudgetItems.push(serviceToItem(service,qtd,valor)); renderBudgetItems();
+}
+function addBudgetProduct() {
+  const product=findProduct(qs('orc-product-select')?.value); if(!product) return;
+  const qtd=Number(qs('orc-product-qtd').value||1); const valor=Number(qs('orc-product-valor').value||product.precoVenda||0);
+  tempBudgetItems.push(productToItem(product,qtd,valor)); renderBudgetItems();
 }
 function addOSItem() {
   const serviceId = qs('os-service-select').value; const service = findService(serviceId);
   if (!service) return;
   const qtd = Number(qs('os-item-qtd').value || 1); const valor = Number(qs('os-item-valor').value || service.valor);
-  tempOSItems.push({ serviceId, nome: service.nome, qtd, valor, total: qtd * valor }); renderOSItems();
+  tempOSItems.push(serviceToItem(service,qtd,valor)); renderOSItems();
+}
+function addOSProduct() {
+  const product=findProduct(qs('os-product-select')?.value); if(!product) return;
+  const qtd=Number(qs('os-product-qtd').value||1); const valor=Number(qs('os-product-valor').value||product.precoVenda||0);
+  tempOSItems.push(productToItem(product,qtd,valor)); renderOSItems();
 }
 function renderBudgetItems() {
   const tbody = qs('orc-items-body');
-  if (!tempBudgetItems.length) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Nenhum item adicionado.</td></tr>`;
-  else tbody.innerHTML = tempBudgetItems.map((i, idx) => `<tr><td>${escapeHtml(i.nome)}</td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td><td><button type="button" class="action-btn del" onclick="removeBudgetItem(${idx})">Remover</button></td></tr>`).join('');
+  if (!tempBudgetItems.length) tbody.innerHTML = `<tr><td colspan="6" class="empty-row">Nenhum item adicionado.</td></tr>`;
+  else tbody.innerHTML = tempBudgetItems.map((i, idx) => `<tr><td><strong>${escapeHtml(i.itemType||'Serviço')}</strong></td><td><strong>${escapeHtml(i.nome)}</strong><div class="table-sub">${escapeHtml(itemDetails(i)||'—')}</div></td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td><td><button type="button" class="action-btn del" onclick="removeBudgetItem(${idx})">Remover</button></td></tr>`).join('');
   qs('orc-total').textContent = currency(sumItems(tempBudgetItems));
 }
 function renderOSItems() {
   const tbody = qs('os-items-body');
-  if (!tempOSItems.length) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Nenhum item adicionado.</td></tr>`;
-  else tbody.innerHTML = tempOSItems.map((i, idx) => `<tr><td>${escapeHtml(i.nome)}</td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td><td><button type="button" class="action-btn del" onclick="removeOSItem(${idx})">Remover</button></td></tr>`).join('');
+  if (!tempOSItems.length) tbody.innerHTML = `<tr><td colspan="6" class="empty-row">Nenhum item adicionado.</td></tr>`;
+  else tbody.innerHTML = tempOSItems.map((i, idx) => `<tr><td><strong>${escapeHtml(i.itemType||'Serviço')}</strong></td><td><strong>${escapeHtml(i.nome)}</strong><div class="table-sub">${escapeHtml(itemDetails(i)||'—')}</div></td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td><td><button type="button" class="action-btn del" onclick="removeOSItem(${idx})">Remover</button></td></tr>`).join('');
   qs('os-total').textContent = currency(sumItems(tempOSItems));
 }
 window.removeBudgetItem = (idx) => { tempBudgetItems.splice(idx, 1); renderBudgetItems(); };
@@ -1829,13 +1889,17 @@ function renderAll() {
   if (qs('financeiro-form')) { const d = qs('financeiro-form').querySelector('[name="data"]'); if (d && !d.value) d.value = today(); updateFinanceFormByType(); }
 }
 
-function serviceLabel(s) { return `${s.codigo ? s.codigo + ' - ' : ''}${s.nome} - ${currency(s.valor)}`; }
-function getFilteredServices(term='') { const t = (term || '').trim().toLowerCase(); return state.services.filter(s => s.ativo).filter(s => `${s.codigo || ''} ${s.nome} ${s.categoria || ''}`.toLowerCase().includes(t)); }
+function serviceLabel(s) { return `${s.codigo ? s.codigo + ' - ' : ''}${s.nome}${s.peca?' / '+s.peca:''}${s.lado?' / '+s.lado:''}${s.posicao?' / '+s.posicao:''}${s.nivel?' / '+s.nivel:''}${s.marca?' / '+s.marca:''} - ${currency(s.valor)}`; }
+function getFilteredServices(term='') { const t = (term || '').trim().toLowerCase(); return state.services.filter(s => s.ativo).filter(s => `${s.codigo || ''} ${s.nome} ${s.peca||''} ${s.categoria || ''} ${s.marca||''} ${s.lado||''} ${s.posicao||''} ${s.nivel||''} ${s.descricao||''}`.toLowerCase().includes(t)); }
 function renderServiceSelectByFilter(selectId, filterId) { const el = qs(selectId); if (!el) return; const current = el.value; const term = qs(filterId)?.value || ''; const opts = ['<option value="">Selecione um serviço</option>'].concat(getFilteredServices(term).map(s => `<option value="${s.id}">${escapeHtml(serviceLabel(s))}</option>`)).join(''); el.innerHTML = opts; if ([...el.options].some(o => o.value === current)) el.value = current; }
+function productLabel(p){ return `${p.codigo?p.codigo+' - ':''}${p.nome}${p.lado?' / '+p.lado:''}${p.posicao?' / '+p.posicao:''}${p.nivel?' / '+p.nivel:''}${p.marca?' / '+p.marca:''} - ${currency(p.precoVenda)}`; }
+function getFilteredProducts(term=''){ const t=(term||'').trim().toLowerCase(); return state.inventory.filter(p=>`${p.codigo||''} ${p.nome||''} ${p.categoria||''} ${p.marca||''} ${p.lado||''} ${p.posicao||''} ${p.nivel||''} ${p.descricao||''}`.toLowerCase().includes(t)); }
+function renderProductSelectByFilter(selectId,filterId){ const el=qs(selectId); if(!el)return; const current=el.value; const term=qs(filterId)?.value||''; el.innerHTML='<option value="">Selecione uma peça</option>'+getFilteredProducts(term).map(p=>`<option value="${p.id}">${escapeHtml(productLabel(p))}</option>`).join(''); if([...el.options].some(o=>o.value===current)) el.value=current; }
 function renderSelects() {
   const clientOptions = ['<option value="">Selecione</option>'].concat(state.clients.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}${c.veiculo ? ' - ' + escapeHtml(c.veiculo) : ''}</option>`)).join('');
   ['orc-cliente-select','os-cliente-select','agenda-cliente-select','receber-cliente-select','sales-cliente-select'].forEach(id => { const el = qs(id); if (el) { const current = el.value; el.innerHTML = clientOptions; if ([...el.options].some(o => o.value === current)) el.value = current; } });
   [['orc-service-select','orc-service-filter'],['os-service-select','os-service-filter'],['sales-service-select','sales-service-filter']].forEach(([sid,fid]) => renderServiceSelectByFilter(sid,fid));
+  [['orc-product-select','orc-product-filter'],['os-product-select','os-product-filter']].forEach(([sid,fid]) => renderProductSelectByFilter(sid,fid));
 }
 
 function renderDashboard() {
@@ -1898,10 +1962,10 @@ window.showClientHistory = function(clientId) {
 
 function renderServices() {
   const term = qs('servicos-search').value.trim().toLowerCase();
-  const list = state.services.filter(s => `${s.codigo || ''} ${s.nome} ${s.categoria}`.toLowerCase().includes(term));
+  const list = state.services.filter(s => `${s.codigo || ''} ${s.nome} ${s.peca||''} ${s.categoria} ${s.marca||''} ${s.lado||''} ${s.posicao||''} ${s.nivel||''} ${s.descricao||''}`.toLowerCase().includes(term));
   fillTable('servicos-table', list, s => {
     const idx = state.services.indexOf(s);
-    return `<tr><td>${escapeHtml(s.codigo || '')}</td><td>${escapeHtml(s.nome)}</td><td>${escapeHtml(s.categoria)}</td><td>${currency(s.valor)}</td><td>${escapeHtml(s.tempo || '')}</td><td>${makeBadge(s.ativo ? 'Ativo' : 'Inativo')}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('services',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('services',${idx})`}])}</td></tr>`;
+    return `<tr><td>${escapeHtml(s.codigo || '')}</td><td><strong>${escapeHtml(s.nome)}</strong><div class="table-sub">${escapeHtml(s.peca||'')}${s.descricao?' • '+escapeHtml(s.descricao):''}</div></td><td>${escapeHtml(s.lado||'—')}</td><td>${escapeHtml(s.posicao||'—')}</td><td>${escapeHtml(s.nivel||'—')}</td><td>${escapeHtml(s.marca||'—')}</td><td>${currency(s.valor)}</td><td>${escapeHtml(s.tempo || '')}</td><td>${makeBadge(s.ativo ? 'Ativo' : 'Inativo')}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('services',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('services',${idx})`}])}</td></tr>`;
   });
 }
 
@@ -1934,11 +1998,11 @@ function renderAgenda() {
 
 function renderInventory() {
   const term = qs('estoque-search').value.trim().toLowerCase();
-  const list = state.inventory.filter(i => `${i.nome} ${i.codigo} ${i.categoria}`.toLowerCase().includes(term));
+  const list = state.inventory.filter(i => `${i.nome} ${i.codigo} ${i.categoria} ${i.marca||''} ${i.lado||''} ${i.posicao||''} ${i.nivel||''} ${i.descricao||''}`.toLowerCase().includes(term));
   fillTable('estoque-table', list, i => {
     const idx = state.inventory.indexOf(i);
     const status = Number(i.quantidade) <= Number(i.minimo) ? 'Estoque baixo' : 'OK';
-    return `<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(i.codigo || '')}</td><td>${i.quantidade}</td><td>${i.minimo}</td><td>${currency(i.precoVenda)}</td><td>${makeBadge(status)}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('inventory',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('inventory',${idx})`}])}</td></tr>`;
+    return `<tr><td><strong>${escapeHtml(i.nome)}</strong><div class="table-sub">${escapeHtml(i.descricao||'')}</div></td><td>${escapeHtml(i.codigo || '')}</td><td>${escapeHtml(i.lado||'—')}</td><td>${escapeHtml(i.posicao||'—')}</td><td>${escapeHtml(i.nivel||'—')}</td><td>${escapeHtml(i.marca||'—')}</td><td>${i.quantidade}</td><td>${currency(i.precoVenda)}</td><td>${makeBadge(status)}</td><td>${actionBtns([{t:'Editar',c:'edit',f:`editRecord('inventory',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('inventory',${idx})`}])}</td></tr>`;
   });
 }
 
@@ -2360,7 +2424,7 @@ function quickAddService(originId) {
   const categoria = prompt('Categoria do serviço:', 'Geral') || 'Geral';
   const valor = Number(prompt('Valor de venda do serviço:', '0') || 0);
   const tempo = prompt('Tempo médio (opcional):', '') || '';
-  const rec = { id: uid(), codigo, nome, categoria, valor, custo: 0, tempo, descricao: 'Cadastro rápido', ativo: true };
+  const rec = { id: uid(), codigo, nome, peca:'', categoria, marca:'', lado:'', posicao:'', nivel:'', valor, custo: 0, tempo, descricao: 'Cadastro rápido', ativo: true };
   state.services.unshift(rec); saveState(); renderAll();
   let selectId = 'sales-service-select', inputId = 'sales-item-valor';
   if (originId.includes('orc')) { selectId = 'orc-service-select'; inputId = 'orc-item-valor'; }
@@ -2376,7 +2440,7 @@ window.printBudget = function(id) {
     <p><strong>Data:</strong> ${b.data} &nbsp; <strong>Validade:</strong> ${b.validade || '-'}</p>
     <p><strong>Cliente:</strong> ${escapeHtml(b.clienteNome)}<br><strong>Veículo:</strong> ${escapeHtml(b.veiculo || client?.veiculo || '')}</p>
     <p><strong>Descrição:</strong> ${escapeHtml(b.descricao || '')}</p>
-    <table><thead><tr><th>Item</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${b.items.map(i => `<tr><td>${escapeHtml(i.nome)}</td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>Tipo</th><th>Descrição completa</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${b.items.map(i => `<tr><td>${escapeHtml(i.itemType||'Serviço')}</td><td><strong>${escapeHtml(i.nome)}</strong><br><small>${escapeHtml(itemDetails(i)||'—')}</small></td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td></tr>`).join('')}</tbody></table>
     <h3>Total: ${currency(b.total)}</h3>
     <p>Status: ${b.status}</p>
   `);
@@ -2400,7 +2464,7 @@ window.printOS = function(id) {
     <p><strong>Avarias observadas:</strong> ${escapeHtml(v.observacoes || 'Nenhuma observação registrada.')}</p>
     ${photos ? `<div class="print-photos">${photos}</div>` : ''}
     <h3>Serviços</h3>
-    <table><thead><tr><th>Item</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${o.items.map(i => `<tr><td>${escapeHtml(i.nome)}</td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>Tipo</th><th>Descrição completa</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${o.items.map(i => `<tr><td>${escapeHtml(i.itemType||'Serviço')}</td><td><strong>${escapeHtml(i.nome)}</strong><br><small>${escapeHtml(itemDetails(i)||'—')}</small></td><td>${i.qtd}</td><td>${currency(i.valor)}</td><td>${currency(i.total)}</td></tr>`).join('')}</tbody></table>
     <h3>Total: ${currency(o.total)}</h3>
     <p><strong>Relatório técnico:</strong><br>${escapeHtml(o.relatorioServicos || '-').replace(/\n/g,'<br>')}</p>
     <p><strong>Recomendações:</strong><br>${escapeHtml(o.recomendacoes || '-').replace(/\n/g,'<br>')}</p>
