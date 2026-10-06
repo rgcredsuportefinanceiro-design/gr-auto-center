@@ -1234,6 +1234,56 @@ function subscribeCloud() {
     .subscribe();
 }
 
+let mobileIntakeChannel = null;
+
+async function loadMobileIntakesFromCloud() {
+  if (!cloudUser) return;
+  const { data, error } = await cloud
+    .from('gr_mobile_intakes')
+    .select('*')
+    .eq('user_id', cloudUser.id)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Erro ao carregar entradas do celular:', error.message);
+    return;
+  }
+  state.mobileIntakes = (data || []).map(r => ({
+    id: r.id,
+    cliente: r.cliente || '',
+    telefone: r.telefone || '',
+    veiculo: r.veiculo || '',
+    ano: r.ano || '',
+    placa: r.placa || '',
+    km: r.km || '',
+    problema: r.problema || '',
+    atencao: r.atencao || '',
+    observacoes: r.observacoes || '',
+    fotos: Array.isArray(r.fotos) ? r.fotos : [],
+    status: r.status || 'Pendente',
+    createdAt: r.created_at
+  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function subscribeMobileIntakes() {
+  if (!cloudUser) return;
+  if (mobileIntakeChannel) cloud.removeChannel(mobileIntakeChannel);
+  mobileIntakeChannel = cloud
+    .channel('gr-mobile-intakes-' + cloudUser.id)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'gr_mobile_intakes',
+      filter: `user_id=eq.${cloudUser.id}`
+    }, async () => {
+      await loadMobileIntakesFromCloud();
+      if (document.getElementById('app') && !document.getElementById('app').classList.contains('hidden')) {
+        renderMobileIntakes();
+      }
+    })
+    .subscribe();
+}
+
 function cloudAuthOverlay() {
   let el = document.getElementById('cloud-auth-overlay');
   if (el) return el;
@@ -1264,7 +1314,9 @@ async function ensureCloudSession() {
   if (data.session?.user) {
     cloudUser = data.session.user;
     await cloudInitialSync();
+    await loadMobileIntakesFromCloud();
     subscribeCloud();
+    subscribeMobileIntakes();
     return true;
   }
   cloudAuthOverlay();
@@ -2498,15 +2550,43 @@ function showMobileIntake() {
 
 async function handleMobileIntakeSubmit(e) {
   e.preventDefault();
-  const msg = document.getElementById('mobile-intake-msg'); msg.textContent = 'Enviando...';
-  const obj = formDataObj(e.target);
-  const files = [...document.getElementById('mobile-intake-photos').files].slice(0, 8);
-  const fotos = []; for (const file of files) fotos.push(await compressImage(file, 900, 0.58));
-  if (!Array.isArray(state.mobileIntakes)) state.mobileIntakes = [];
-  state.mobileIntakes.unshift({id:uid(),cliente:obj.cliente||'',telefone:obj.telefone||'',veiculo:obj.veiculo||'',ano:obj.ano||'',placa:(obj.placa||'').toUpperCase(),km:obj.km||'',problema:obj.problema||'',atencao:obj.atencao||'',observacoes:obj.observacoes||'',fotos,status:'Pendente',createdAt:new Date().toISOString()});
-  saveState(); await saveStateToCloud(); e.target.reset();
-  document.getElementById('mobile-photo-status').textContent='Nenhuma foto selecionada.';
-  msg.textContent='✓ Enviado. Já está disponível no computador.'; setTimeout(()=>msg.textContent='',4500);
+  const msg = document.getElementById('mobile-intake-msg');
+  msg.textContent = 'Enviando...';
+  const btn = e.target.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const obj = formDataObj(e.target);
+    const files = [...document.getElementById('mobile-intake-photos').files].slice(0, 8);
+    const fotos = [];
+    for (const file of files) fotos.push(await compressImage(file, 900, 0.58));
+    const rec = {
+      id: uid(),
+      user_id: cloudUser.id,
+      cliente: obj.cliente || '',
+      telefone: obj.telefone || '',
+      veiculo: obj.veiculo || '',
+      ano: obj.ano || '',
+      placa: (obj.placa || '').toUpperCase(),
+      km: obj.km || '',
+      problema: obj.problema || '',
+      atencao: obj.atencao || '',
+      observacoes: obj.observacoes || '',
+      fotos,
+      status: 'Pendente'
+    };
+    const { error } = await cloud.from('gr_mobile_intakes').insert(rec);
+    if (error) throw error;
+    await loadMobileIntakesFromCloud();
+    e.target.reset();
+    document.getElementById('mobile-photo-status').textContent = 'Nenhuma foto selecionada.';
+    msg.textContent = '✓ Enviado para o computador.';
+  } catch (err) {
+    console.error(err);
+    msg.textContent = 'Não foi possível enviar. Verifique a internet e tente novamente.';
+  } finally {
+    if (btn) btn.disabled = false;
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 5000);
+  }
 }
 
 function renderMobileIntakes() {
@@ -2516,7 +2596,7 @@ function renderMobileIntakes() {
 }
 function updateMobileIntakesPanel(){ const box=document.getElementById('mobile-intakes-list'); if(!box)return; const arr=Array.isArray(state.mobileIntakes)?state.mobileIntakes:[]; const count=document.getElementById('mobile-intakes-count'); if(count) count.textContent=arr.filter(x=>x.status!=='Usado').length; if(!arr.length){box.innerHTML='<div class="empty-state">Nenhuma entrada enviada pelo celular.</div>';return;} box.innerHTML=arr.map((x,i)=>`<div class="mobile-intake-row"><div class="mobile-intake-row-main"><strong>${escapeHtml(x.cliente)}</strong><span>${escapeHtml(x.veiculo)} ${x.placa?'• '+escapeHtml(x.placa):''}</span><small>${new Date(x.createdAt).toLocaleString('pt-BR')} • ${escapeHtml(x.problema)}</small></div><div class="mobile-intake-row-actions"><button class="ghost-btn small" onclick="openMobileIntake(${i})">Ver</button><button class="primary-btn small" onclick="useMobileIntakeInBudget(${i})">Usar no orçamento</button></div></div>`).join(''); }
 function openMobileIntake(i){ const x=state.mobileIntakes[i]; if(!x)return; const fotos=(x.fotos||[]).map(src=>`<img src="${src}" style="width:130px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #d7e0ea">`).join(''); const w=window.open('','_blank','width=760,height=700'); w.document.write(`<html><head><title>Entrada do veículo</title></head><body style="font-family:Arial;padding:24px;color:#17324d"><h2>GR Auto Center — Entrada pelo celular</h2><p><b>Cliente:</b> ${escapeHtml(x.cliente)} &nbsp; <b>Telefone:</b> ${escapeHtml(x.telefone)}</p><p><b>Veículo:</b> ${escapeHtml(x.veiculo)} &nbsp; <b>Ano:</b> ${escapeHtml(x.ano)} &nbsp; <b>Placa:</b> ${escapeHtml(x.placa)} &nbsp; <b>KM:</b> ${escapeHtml(x.km)}</p><h3>Problema relatado</h3><p>${escapeHtml(x.problema)}</p><h3>O que precisa de atenção</h3><p>${escapeHtml(x.atencao||'—')}</p><h3>Observações</h3><p>${escapeHtml(x.observacoes||'—')}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${fotos}</div></body></html>`); w.document.close(); }
-function useMobileIntakeInBudget(i){ const x=state.mobileIntakes[i]; if(!x)return; let c=state.clients.find(c=>c.nome.trim().toLowerCase()===x.cliente.trim().toLowerCase()&&(!x.placa||c.placa===x.placa)); if(!c){ c={id:uid(),nome:x.cliente,telefone:x.telefone,email:'',documento:'',veiculo:x.veiculo,placa:x.placa,ano:x.ano,km:Number(x.km||0),origem:'Entrada pelo celular',proximoRetorno:'',observacoes:x.observacoes,createdAt:today()}; state.clients.unshift(c);} x.status='Usado'; saveState(); renderAll(); activateView('orcamentos'); const form=document.getElementById('orcamento-form'); if(form){form.querySelector('[name="clienteId"]').value=c.id; form.querySelector('[name="veiculo"]').value=`${x.veiculo}${x.placa?' / '+x.placa:''}`; form.querySelector('[name="descricao"]').value=`Problema relatado: ${x.problema}\nAtenção: ${x.atencao||'—'}\nObservações: ${x.observacoes||'—'}`; form.scrollIntoView({behavior:'smooth',block:'start'});} }
+async function useMobileIntakeInBudget(i){ const x=state.mobileIntakes[i]; if(!x)return; let c=state.clients.find(c=>c.nome.trim().toLowerCase()===x.cliente.trim().toLowerCase()&&(!x.placa||c.placa===x.placa)); if(!c){ c={id:uid(),nome:x.cliente,telefone:x.telefone,email:'',documento:'',veiculo:x.veiculo,placa:x.placa,ano:x.ano,km:Number(x.km||0),origem:'Entrada pelo celular',proximoRetorno:'',observacoes:x.observacoes,createdAt:today()}; state.clients.unshift(c);} x.status='Usado'; await cloud.from('gr_mobile_intakes').update({status:'Usado'}).eq('id',x.id).eq('user_id',cloudUser.id); saveState(); renderAll(); activateView('orcamentos'); const form=document.getElementById('orcamento-form'); if(form){form.querySelector('[name="clienteId"]').value=c.id; form.querySelector('[name="veiculo"]').value=`${x.veiculo}${x.placa?' / '+x.placa:''}`; form.querySelector('[name="descricao"]').value=`Problema relatado: ${x.problema}\nAtenção: ${x.atencao||'—'}\nObservações: ${x.observacoes||'—'}`; form.scrollIntoView({behavior:'smooth',block:'start'});} }
 
 </script>
 </body>
