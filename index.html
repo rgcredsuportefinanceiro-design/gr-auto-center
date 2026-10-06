@@ -2701,86 +2701,18 @@ async function handleMobileIntakeSubmit(e) {
     const { error } = await cloud.from('gr_mobile_intakes').insert(rec);
     if (error) throw error;
 
-    // Salva/atualiza o cliente no cadastro principal.
-    let client = state.clients.find(c =>
-      (placa && String(c.placa || '').toUpperCase().trim() === placa) ||
-      (telefone && String(c.telefone || '').replace(/\D/g,'') === telefone.replace(/\D/g,'')) ||
-      String(c.nome || '').trim().toLowerCase() === clienteNome.toLowerCase()
-    );
+    // Processa no servidor: salva/atualiza cliente e cria a OS no estado principal.
+    const { data: processed, error: processError } = await cloud.rpc('gr_process_mobile_intake', { p_intake_id: intakeId });
+    if (processError) throw processError;
 
-    if (!client) {
-      client = {
-        id: uid(),
-        nome: clienteNome,
-        telefone,
-        email: '',
-        documento: '',
-        veiculo: obj.veiculo || '',
-        placa,
-        ano: obj.ano || '',
-        km: Number(obj.km || 0),
-        origem: 'Entrada pelo celular',
-        proximoRetorno: '',
-        observacoes: obj.observacoes || '',
-        createdAt: today()
-      };
-      state.clients.unshift(client);
-    } else {
-      client.nome = clienteNome || client.nome;
-      client.telefone = telefone || client.telefone;
-      client.veiculo = obj.veiculo || client.veiculo;
-      client.placa = placa || client.placa;
-      client.ano = obj.ano || client.ano;
-      if (obj.km) client.km = Number(obj.km || 0);
-      if (obj.observacoes) client.observacoes = obj.observacoes;
-    }
-
-    // Cria a OS vinculada à entrada do celular, evitando duplicidade.
-    let os = state.workOrders.find(o => o.sourceMobileIntakeId === intakeId);
-    if (!os) {
-      os = {
-        id: uid(),
-        numero: generateNumber('OS', state.workOrders),
-        clienteId: client.id,
-        clienteNome: client.nome,
-        veiculo: [obj.veiculo || '', placa].filter(Boolean).join(' / '),
-        dataEntrada: today(),
-        previsaoEntrega: '',
-        km: Number(obj.km || 0),
-        status: 'Aguardando aprovação',
-        pagamento: 'A combinar',
-        elevador: 'Sem elevador',
-        queixa: obj.problema || '',
-        diagnostico: obj.atencao || '',
-        observacoes: obj.observacoes || '',
-        vistoria: {
-          lataria: 'Não verificado',
-          vidros: 'Não verificado',
-          pneus: 'Não verificado',
-          luzes: 'Não verificado',
-          interior: 'Não verificado',
-          combustivel: 'Reserva',
-          observacoes: obj.observacoes || ''
-        },
-        fotosEntrada: fotos,
-        relatorioServicos: '',
-        recomendacoes: '',
-        items: [],
-        total: 0,
-        sourceMobileIntakeId: intakeId
-      };
-      state.workOrders.unshift(os);
-    }
-
-    // Grava cliente + OS no estado principal e envia para a nuvem.
-    saveState();
-    await saveStateToCloud();
+    // Recarrega o estado oficial da nuvem para celular e computador exibirem a mesma coisa.
+    await cloudInitialSync();
     await loadMobileIntakesFromCloud();
 
     e.target.reset();
     document.getElementById('mobile-photo-status').textContent = 'Nenhuma foto selecionada.';
     renderMobileWorkshopTabs();
-    msg.textContent = '✓ Cliente e OS salvos. Já estão disponíveis no computador.';
+    msg.textContent = '✓ Cliente e OS salvos na nuvem. Já estão disponíveis no computador.';
   } catch (err) {
     console.error(err);
     msg.textContent = 'Não foi possível salvar cliente e OS. Verifique a internet e tente novamente.';
