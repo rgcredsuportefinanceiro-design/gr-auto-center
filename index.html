@@ -2676,14 +2676,20 @@ async function handleMobileIntakeSubmit(e) {
     const files = [...document.getElementById('mobile-intake-photos').files].slice(0, 8);
     const fotos = [];
     for (const file of files) fotos.push(await compressImage(file, 900, 0.58));
+
+    const intakeId = uid();
+    const placa = (obj.placa || '').toUpperCase().trim();
+    const telefone = (obj.telefone || '').trim();
+    const clienteNome = (obj.cliente || '').trim();
+
     const rec = {
-      id: uid(),
+      id: intakeId,
       user_id: cloudUser.id,
-      cliente: obj.cliente || '',
-      telefone: obj.telefone || '',
+      cliente: clienteNome,
+      telefone,
       veiculo: obj.veiculo || '',
       ano: obj.ano || '',
-      placa: (obj.placa || '').toUpperCase(),
+      placa,
       km: obj.km || '',
       problema: obj.problema || '',
       atencao: obj.atencao || '',
@@ -2691,18 +2697,96 @@ async function handleMobileIntakeSubmit(e) {
       fotos,
       status: 'Pendente'
     };
+
     const { error } = await cloud.from('gr_mobile_intakes').insert(rec);
     if (error) throw error;
+
+    // Salva/atualiza o cliente no cadastro principal.
+    let client = state.clients.find(c =>
+      (placa && String(c.placa || '').toUpperCase().trim() === placa) ||
+      (telefone && String(c.telefone || '').replace(/\D/g,'') === telefone.replace(/\D/g,'')) ||
+      String(c.nome || '').trim().toLowerCase() === clienteNome.toLowerCase()
+    );
+
+    if (!client) {
+      client = {
+        id: uid(),
+        nome: clienteNome,
+        telefone,
+        email: '',
+        documento: '',
+        veiculo: obj.veiculo || '',
+        placa,
+        ano: obj.ano || '',
+        km: Number(obj.km || 0),
+        origem: 'Entrada pelo celular',
+        proximoRetorno: '',
+        observacoes: obj.observacoes || '',
+        createdAt: today()
+      };
+      state.clients.unshift(client);
+    } else {
+      client.nome = clienteNome || client.nome;
+      client.telefone = telefone || client.telefone;
+      client.veiculo = obj.veiculo || client.veiculo;
+      client.placa = placa || client.placa;
+      client.ano = obj.ano || client.ano;
+      if (obj.km) client.km = Number(obj.km || 0);
+      if (obj.observacoes) client.observacoes = obj.observacoes;
+    }
+
+    // Cria a OS vinculada à entrada do celular, evitando duplicidade.
+    let os = state.workOrders.find(o => o.sourceMobileIntakeId === intakeId);
+    if (!os) {
+      os = {
+        id: uid(),
+        numero: generateNumber('OS', state.workOrders),
+        clienteId: client.id,
+        clienteNome: client.nome,
+        veiculo: [obj.veiculo || '', placa].filter(Boolean).join(' / '),
+        dataEntrada: today(),
+        previsaoEntrega: '',
+        km: Number(obj.km || 0),
+        status: 'Aguardando aprovação',
+        pagamento: 'A combinar',
+        elevador: 'Sem elevador',
+        queixa: obj.problema || '',
+        diagnostico: obj.atencao || '',
+        observacoes: obj.observacoes || '',
+        vistoria: {
+          lataria: 'Não verificado',
+          vidros: 'Não verificado',
+          pneus: 'Não verificado',
+          luzes: 'Não verificado',
+          interior: 'Não verificado',
+          combustivel: 'Reserva',
+          observacoes: obj.observacoes || ''
+        },
+        fotosEntrada: fotos,
+        relatorioServicos: '',
+        recomendacoes: '',
+        items: [],
+        total: 0,
+        sourceMobileIntakeId: intakeId
+      };
+      state.workOrders.unshift(os);
+    }
+
+    // Grava cliente + OS no estado principal e envia para a nuvem.
+    saveState();
+    await saveStateToCloud();
     await loadMobileIntakesFromCloud();
+
     e.target.reset();
     document.getElementById('mobile-photo-status').textContent = 'Nenhuma foto selecionada.';
-    msg.textContent = '✓ Enviado para o computador.';
+    renderMobileWorkshopTabs();
+    msg.textContent = '✓ Cliente e OS salvos. Já estão disponíveis no computador.';
   } catch (err) {
     console.error(err);
-    msg.textContent = 'Não foi possível enviar. Verifique a internet e tente novamente.';
+    msg.textContent = 'Não foi possível salvar cliente e OS. Verifique a internet e tente novamente.';
   } finally {
     if (btn) btn.disabled = false;
-    setTimeout(() => { if (msg) msg.textContent = ''; }, 5000);
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 6000);
   }
 }
 
