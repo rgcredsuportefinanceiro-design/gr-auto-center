@@ -2569,13 +2569,95 @@ function exportBackup() {
   a.download = `gr-auto-center-backup-${today()}.json`;
   a.click();
 }
-function importBackup(e) {
-  const file = e.target.files[0]; if (!file) return;
-  file.text().then(text => {
-    const parsed = JSON.parse(text);
-    state = mergeDefault(parsed); saveState(); renderAll(); alert('Backup importado com sucesso.');
-  }).catch(() => alert('Arquivo inválido.'));
+// Importacao nao destrutiva: preserva o estado atual, registros vinculados e dados desconhecidos.
+async function importBackup(e) {
+  const file = e.target.files[0];
   e.target.value = '';
+  if (!file) return;
+  let parsed;
+  try { parsed = JSON.parse(await file.text()); }
+  catch (_) { alert('Arquivo JSON invalido. Nenhuma alteracao realizada.'); return; }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+      !['clients','services','workOrders','orders','sales','inventory'].some(k => Array.isArray(parsed[k]))) {
+    alert('Este arquivo nao parece ser um backup da GR Auto Center. Nada foi alterado.'); return;
+  }
+  const original = structuredClone(state);
+  const merged = structuredClone(state);
+  const counts = {};
+  const conflicts = [];
+  const maps = {};
+  // Identidades antigas sao preservadas; IDs divergentes nunca sobrescrevem registros existentes.
+  const categories = Object.keys(defaultData).filter(k => Array.isArray(defaultData[k]) && k !== 'users');
+  for (const key of categories) {
+    if (!Array.isArray(parsed[key])) continue;
+    if (!Array.isArray(merged[key])) merged[key] = [];
+    const byId = new Map(merged[key].filter(x => x && x.id != null).map(x => [String(x.id),x]));
+    const seen = new Set(merged[key].map(x => JSON.stringify(x)));
+    const idMap = {};
+    let added = 0;
+    for (const item of parsed[key]) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      let next = structuredClone(item);
+      const oldId = next.id == null ? '' : String(next.id);
+      if (oldId && byId.has(oldId)) {
+        if (JSON.stringify(byId.get(oldId)) === JSON.stringify(next)) continue;
+        // Mesmo ID e dados diferentes: manter ambas as versoes sem sobrescrever.
+        const newId = 'imp_' + key + '_' + uid();
+        next.id = newId;
+        idMap[oldId] = newId;
+        conflicts.push(key + ': ID ' + oldId + ' preservado em duas versoes');
+      } else if (seen.has(JSON.stringify(next))) continue;
+      merged[key].push(next);
+      if (next.id != null) byId.set(String(next.id), next);
+      seen.add(JSON.stringify(next));
+      added++;
+    }
+    maps[key] = idMap;
+    counts[key] = added;
+  }
+  // Atualiza somente os novos registros importados, mantendo os existentes intactos.
+  const refs = { clientId:'clients', clienteId:'clients', serviceId:'services',
+    servicoId:'services', osId:'workOrders', workOrderId:'workOrders',
+    orderId:'orders', orçamentoId:'quotes', orcamentoId:'quotes',
+    saleId:'sales', vendaId:'sales', productId:'inventory', itemId:'inventory' };
+  for (const key of categories) {
+    const n = counts[key] || 0;
+    if (!n) continue;
+    for (const record of merged[key].slice(-n)) {
+      const walk = obj => {
+        if (!obj || typeof obj !== 'object') return;
+        for (const [field,val] of Object.entries(obj)) {
+          if (val && typeof val === 'object') walk(val);
+          else if (typeof val === 'string' && refs[field] && maps[refs[field]]?.[val])
+            obj[field] = maps[refs[field]][val];
+        }
+      };
+      walk(record);
+    }
+  }
+  // Contas de usuario sao mantidas como estao: importar senhas de outro backup e inseguro.
+  const total = Object.values(counts).reduce((a,b)=>a+b,0);
+  if (!total) { alert('Nenhum registro novo encontrado. Seus dados foram mantidos.'); return; }
+  const summary = Object.entries(counts).filter(([,n])=>n).map(([k,n])=>k+': +'+n).join('\\n');
+  if (!confirm('IMPORTACAO SEM APAGAR DADOS\\n\\n'+summary+
+      '\\n\\nConflitos de ID preservados: '+conflicts.length+
+      '\\n\\nUma copia do estado atual sera baixada antes da importacao. Continuar?')) return;
+  try {
+    const blob = new Blob([JSON.stringify(original,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'GR-backup-ANTES-importacao-' + today() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    state = merged;
+    saveState();
+    renderAll();
+    alert('Importacao concluida: '+total+' registros acrescentados. Nenhum registro anterior foi removido. Confira as telas e guarde o backup anterior.');
+  } catch(err) {
+    state = original;
+    saveState();
+    alert('Falha na importacao. Estado anterior restaurado: '+err.message);
+  }
 }
 
 init();
