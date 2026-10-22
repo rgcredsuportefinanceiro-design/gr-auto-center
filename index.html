@@ -2665,6 +2665,49 @@ if (qs('sales-item-qtd')) qs('sales-item-qtd').addEventListener('input', () => q
 if (qs('sales-item-valor')) qs('sales-item-valor').addEventListener('input', () => qs('sales-total').textContent = currency(Number(qs('sales-item-qtd').value || 0) * Number(qs('sales-item-valor').value || 0)));
 
 
+let mobileIntakePhotos = [];
+
+function renderMobileIntakePhotos() {
+  const status = document.getElementById('mobile-photo-status');
+  const preview = document.getElementById('mobile-photo-preview');
+  if (status) status.textContent = mobileIntakePhotos.length
+    ? mobileIntakePhotos.length + ' foto(s) adicionada(s). Você pode continuar tirando mais.'
+    : 'Nenhuma foto adicionada.';
+  if (!preview) return;
+  preview.innerHTML = mobileIntakePhotos.map((src, idx) => `
+    <div style="position:relative;border:1px solid #d8e1ea;border-radius:10px;overflow:hidden;background:#f4f7fa">
+      <img src="${src}" alt="Foto ${idx+1}" style="width:100%;height:92px;object-fit:cover;display:block">
+      <button type="button" onclick="removeMobileIntakePhoto(${idx})" style="position:absolute;right:4px;top:4px;border:0;border-radius:999px;background:#b42318;color:#fff;width:28px;height:28px;font-weight:900">×</button>
+    </div>`).join('');
+}
+
+window.removeMobileIntakePhoto = function(idx) {
+  mobileIntakePhotos.splice(idx, 1);
+  renderMobileIntakePhotos();
+};
+
+async function handleMobileIntakePhotoPick(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (!files.length) return;
+  if (mobileIntakePhotos.length >= 12) {
+    alert('Você já adicionou o limite de 12 fotos.');
+    return;
+  }
+  const remaining = 12 - mobileIntakePhotos.length;
+  const selected = files.slice(0, remaining);
+  try {
+    for (const file of selected) {
+      mobileIntakePhotos.push(await compressImage(file, 900, 0.58));
+      renderMobileIntakePhotos();
+    }
+    if (files.length > remaining) alert('Foram adicionadas até 12 fotos. As demais não foram incluídas.');
+  } catch (err) {
+    console.error(err);
+    alert('Não foi possível processar uma das fotos. Tente novamente.');
+  }
+}
+
 function showMobileIntake() {
   document.getElementById('login-screen')?.classList.add('hidden');
   document.getElementById('app')?.classList.add('hidden');
@@ -2691,8 +2734,11 @@ function showMobileIntake() {
           <label>Problema relatado<textarea name="problema" rows="3" required placeholder="O que o cliente informou?"></textarea></label>
           <label>O que precisa de atenção<textarea name="atencao" rows="3" placeholder="Itens observados na entrada"></textarea></label>
           <label>Observações<textarea name="observacoes" rows="2" placeholder="Informações adicionais"></textarea></label>
-          <label class="mobile-photo-label">📷 Fotos do veículo<input id="mobile-intake-photos" type="file" accept="image/*" capture="environment" multiple></label>
-          <div id="mobile-photo-status" class="mobile-photo-status">Nenhuma foto selecionada.</div>
+          <label class="mobile-photo-label">📷 Adicionar foto do veículo<input id="mobile-intake-photos" type="file" accept="image/*" capture="environment"></label>
+          <div id="mobile-photo-status" class="mobile-photo-status">Nenhuma foto adicionada.</div>
+          <div id="mobile-photo-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0"></div>
+          <button id="mobile-photo-gallery-btn" class="mobile-secondary-btn" type="button" style="width:100%;margin-bottom:10px">🖼️ Selecionar várias da galeria</button>
+          <input id="mobile-intake-gallery" type="file" accept="image/*" multiple hidden>
           <button class="mobile-save-btn" type="submit">SALVAR E ENVIAR PARA ORÇAMENTO</button>
           <div id="mobile-intake-msg" class="mobile-intake-msg"></div>
         </form>
@@ -2720,7 +2766,13 @@ function showMobileIntake() {
   }));
 
   const photoInput = document.getElementById('mobile-intake-photos');
-  photoInput.addEventListener('change', () => { document.getElementById('mobile-photo-status').textContent = photoInput.files.length ? `${photoInput.files.length} foto(s) selecionada(s).` : 'Nenhuma foto selecionada.'; });
+  const galleryInput = document.getElementById('mobile-intake-gallery');
+  const galleryBtn = document.getElementById('mobile-photo-gallery-btn');
+  mobileIntakePhotos = [];
+  renderMobileIntakePhotos();
+  photoInput.addEventListener('change', handleMobileIntakePhotoPick);
+  galleryInput.addEventListener('change', handleMobileIntakePhotoPick);
+  galleryBtn.addEventListener('click', () => galleryInput.click());
   document.getElementById('mobile-cloud-logout').addEventListener('click', cloudLogout);
   document.getElementById('mobile-intake-form').addEventListener('submit', handleMobileIntakeSubmit);
   renderMobileWorkshopTabs();
@@ -2819,9 +2871,7 @@ async function handleMobileIntakeSubmit(e) {
   if (btn) btn.disabled = true;
   try {
     const obj = formDataObj(e.target);
-    const files = [...document.getElementById('mobile-intake-photos').files].slice(0, 8);
-    const fotos = [];
-    for (const file of files) fotos.push(await compressImage(file, 900, 0.58));
+    const fotos = [...mobileIntakePhotos].slice(0, 12);
 
     const intakeId = uid();
     const placa = (obj.placa || '').toUpperCase().trim();
@@ -2856,7 +2906,8 @@ async function handleMobileIntakeSubmit(e) {
     await loadMobileIntakesFromCloud();
 
     e.target.reset();
-    document.getElementById('mobile-photo-status').textContent = 'Nenhuma foto selecionada.';
+    mobileIntakePhotos = [];
+    renderMobileIntakePhotos();
     renderMobileWorkshopTabs();
     msg.textContent = '✓ Cliente e OS salvos na nuvem. Já estão disponíveis no computador.';
   } catch (err) {
