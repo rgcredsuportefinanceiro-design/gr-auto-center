@@ -1983,7 +1983,7 @@ function renderWorkOrders() {
   const list = state.workOrders.filter(o => `${o.numero} ${o.clienteNome} ${o.queixa} ${o.veiculo}`.toLowerCase().includes(term));
   fillTable('os-table', list, o => {
     const idx = state.workOrders.indexOf(o);
-    return `<tr><td>${escapeHtml(o.numero)}</td><td>${escapeHtml(o.clienteNome)}</td><td>${currency(o.total)}</td><td>${makeBadge(o.status)}</td><td>${o.dataEntrada}</td><td>${actionBtns([{t:'OS',c:'print',f:`printOS('${o.id}')`},{t:'Relatório',c:'print',f:`printServiceReport('${o.id}')`},{t:'Concluir',c:'ok',f:`markOSDone('${o.id}')`},{t:'Editar',c:'edit',f:`editRecord('workOrders',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('workOrders',${idx})`}])}</td></tr>`;
+    return `<tr><td>${escapeHtml(o.numero)}</td><td>${escapeHtml(o.clienteNome)}</td><td>${currency(o.total)}</td><td>${makeBadge(o.pagamentoStatus === 'Recebido' ? 'Pago' : o.status)}</td><td>${o.dataEntrada}</td><td>${actionBtns([{t:'OS',c:'print',f:`printOS('${o.id}')`},{t:'Relatório',c:'print',f:`printServiceReport('${o.id}')`},{t:'Concluir',c:'ok',f:`markOSDone('${o.id}')`},{t:'Marcar Pago',c:'ok',f:`markOSPaid('${o.id}')`},{t:'Editar',c:'edit',f:`editRecord('workOrders',${idx})`},{t:'Excluir',c:'del',f:`deleteRecord('workOrders',${idx})`}])}</td></tr>`;
   });
 }
 
@@ -2355,9 +2355,21 @@ window.convertBudgetToOS = function(id) {
 };
 
 function createReceivableFromOS(os) {
-  const exists = state.receivables.some(r => r.documento === os.numero);
+  const exists = state.receivables.some(r => r.documento === os.numero || r.sourceOSId === os.id);
   if (exists) return;
-  state.receivables.unshift({ id: uid(), descricao: `Recebimento da ${os.numero}`, clienteId: os.clienteId, clienteNome: os.clienteNome, vencimento: os.previsaoEntrega || today(), valor: Number(os.total || 0), status: 'Aberto', pagamento: os.pagamento || 'A combinar', documento: os.numero, observacoes: 'Gerado automaticamente pela OS concluída.' });
+  state.receivables.unshift({
+    id: uid(),
+    descricao: `Recebimento da ${os.numero}`,
+    clienteId: os.clienteId,
+    clienteNome: os.clienteNome,
+    vencimento: os.previsaoEntrega || today(),
+    valor: Number(os.total || 0),
+    status: 'Aberto',
+    pagamento: os.pagamento || 'A combinar',
+    documento: os.numero,
+    observacoes: 'Gerado automaticamente pela OS concluída.',
+    sourceOSId: os.id
+  });
   saveState(); renderAll();
 }
 function createSaleFromOS(os) {
@@ -2392,6 +2404,73 @@ window.markOSDone = function(id) {
   saveState();
   renderAll();
 };
+window.markOSPaid = function(id) {
+  const os = state.workOrders.find(o => o.id === id);
+  if (!os) return;
+
+  // Evita duplicidade: se já existe entrada de caixa vinculada à OS, apenas sincroniza os status.
+  const existingCash = state.cash.find(c =>
+    c.sourceOSId === os.id ||
+    c.documento === os.numero ||
+    (c.tipo === 'Entrada' && c.categoria === 'OS' && c.referencia === os.numero)
+  );
+
+  os.status = 'Concluído';
+  os.pagamentoStatus = 'Recebido';
+  os.dataPagamento = os.dataPagamento || today();
+
+  createSaleFromOS(os);
+  const sale = state.sales.find(s => s.sourceOSId === os.id || s.sourceOSNumero === os.numero);
+  if (sale) {
+    sale.status = 'Recebido';
+    sale.pagamento = os.pagamento || sale.pagamento || 'A combinar';
+  }
+
+  let receivable = state.receivables.find(r => r.documento === os.numero || r.sourceOSId === os.id);
+  if (!receivable) {
+    receivable = {
+      id: uid(),
+      descricao: `Recebimento da ${os.numero}`,
+      clienteId: os.clienteId,
+      clienteNome: os.clienteNome,
+      vencimento: today(),
+      valor: Number(os.total || 0),
+      status: 'Recebido',
+      pagamento: os.pagamento || 'A combinar',
+      documento: os.numero,
+      observacoes: 'Gerado automaticamente pela OS paga.',
+      sourceOSId: os.id
+    };
+    state.receivables.unshift(receivable);
+  } else {
+    receivable.status = 'Recebido';
+    receivable.pagamento = os.pagamento || receivable.pagamento || 'A combinar';
+    receivable.sourceOSId = receivable.sourceOSId || os.id;
+  }
+
+  if (!existingCash) {
+    state.cash.unshift({
+      id: uid(),
+      data: today(),
+      tipo: 'Entrada',
+      categoria: 'OS',
+      descricao: `Pagamento da ${os.numero}`,
+      valor: Number(os.total || 0),
+      pagamento: os.pagamento || 'A combinar',
+      referencia: os.numero,
+      documento: os.numero,
+      observacoes: `Pagamento recebido da OS - ${os.clienteNome || ''}`,
+      sourceOSId: os.id
+    });
+  }
+
+  saveState();
+  renderAll();
+  alert(existingCash
+    ? 'OS marcada como paga. O lançamento no Caixa já existia e não foi duplicado.'
+    : 'OS marcada como paga e lançada no Caixa.');
+};
+
 window.markPayablePaid = function(id) {
   const item = state.payables.find(p => p.id === id); if (!item) return;
   if (item.status === 'Pago') return;
