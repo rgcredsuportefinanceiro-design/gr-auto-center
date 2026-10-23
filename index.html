@@ -2840,16 +2840,10 @@ function showMobileIntake() {
   root.innerHTML = `
     <div class="mobile-intake-shell"><div class="mobile-intake-card">
       <div class="mobile-intake-brand">GR AUTO CENTER</div>
-      <div class="mobile-intake-sub">Oficina móvel</div>
-      <div class="mobile-tabs">
-        <button type="button" class="mobile-tab-btn active" data-mobile-tab="entrada">ENTRADA</button>
-        <button type="button" class="mobile-tab-btn" data-mobile-tab="orcamento">ORÇAMENTO</button>
-        <button type="button" class="mobile-tab-btn" data-mobile-tab="os">OS</button>
-        <button type="button" class="mobile-tab-btn" data-mobile-tab="executar">EXECUTAR</button>
-      </div>
+      <div class="mobile-intake-sub">Entrada de clientes e veículos</div>
 
       <section id="mobile-tab-entrada" class="mobile-tab-panel active">
-        <div class="mobile-section-title">Entrada rápida para orçamento</div>
+        <div class="mobile-section-title">Cadastro de entrada</div>
         <form id="mobile-intake-form" class="mobile-intake-form">
           <label>Cliente<input name="cliente" required placeholder="Nome do cliente"></label>
           <label>Telefone<input name="telefone" inputmode="tel" placeholder="(14) 99999-9999"></label>
@@ -2864,36 +2858,13 @@ function showMobileIntake() {
           <div id="mobile-photo-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0"></div>
           <button id="mobile-photo-gallery-btn" class="mobile-secondary-btn" type="button" style="width:100%;margin-bottom:10px">🖼️ Selecionar várias da galeria</button>
           <input id="mobile-intake-gallery" type="file" accept="image/*" multiple hidden>
-          <button class="mobile-save-btn" type="submit">SALVAR E ENVIAR PARA ORÇAMENTO</button>
+          <button class="mobile-save-btn" type="submit">SALVAR ENTRADA</button>
           <div id="mobile-intake-msg" class="mobile-intake-msg"></div>
         </form>
       </section>
 
-      <section id="mobile-tab-orcamento" class="mobile-tab-panel">
-        <div class="mobile-section-title">Orçamentos em atendimento</div>
-        <div id="mobile-budget-list" class="mobile-card-list"></div>
-      </section>
-
-      <section id="mobile-tab-os" class="mobile-tab-panel">
-        <div class="mobile-section-title">Ordens de serviço</div>
-        <div id="mobile-approved-budgets"></div>
-        <div id="mobile-os-list" class="mobile-card-list"></div>
-      </section>
-
-      <section id="mobile-tab-executar" class="mobile-tab-panel">
-        <div class="mobile-section-title">Executar serviços aprovados</div>
-        <div id="mobile-execution-list" class="mobile-card-list"></div>
-      </section>
-
       <button class="mobile-secondary-btn" id="mobile-cloud-logout" type="button" style="width:100%;margin-top:16px">Trocar conta</button>
     </div></div>`;
-
-  document.querySelectorAll('.mobile-tab-btn').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('.mobile-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-    document.querySelectorAll('.mobile-tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('mobile-tab-' + btn.dataset.mobileTab)?.classList.add('active');
-    renderMobileWorkshopTabs();
-  }));
 
   const photoInput = document.getElementById('mobile-intake-photos');
   const galleryInput = document.getElementById('mobile-intake-gallery');
@@ -2905,9 +2876,8 @@ function showMobileIntake() {
   galleryBtn.addEventListener('click', () => galleryInput.click());
   document.getElementById('mobile-cloud-logout').addEventListener('click', cloudLogout);
   document.getElementById('mobile-intake-form').addEventListener('submit', handleMobileIntakeSubmit);
-  renderMobileWorkshopTabs();
 }
-
+ 
 function mobileStatusBadge(status='') {
   const s = String(status || '');
   const color = s === 'Concluído' ? '#16723b' : s === 'Em andamento' ? '#1068b8' : s.includes('Aguardando') ? '#a36b00' : '#66788a';
@@ -3123,8 +3093,7 @@ async function handleMobileIntakeSubmit(e) {
     e.target.reset();
     mobileIntakePhotos = [];
     renderMobileIntakePhotos();
-    renderMobileWorkshopTabs();
-    msg.textContent = '✓ Cliente cadastrado e orçamento aberto. Continue na aba ORÇAMENTO.';
+    msg.textContent = '✓ Entrada salva e enviada ao computador. Abra o orçamento pelo computador.';
   } catch (err) {
     console.error(err);
     msg.textContent = 'Falha ao sincronizar cliente/orçamento: ' + (err?.message || String(err));
