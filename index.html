@@ -1211,8 +1211,18 @@ function mergeDefault(parsed) {
   Object.keys(merged).forEach(k => { if (Array.isArray(parsed[k])) merged[k] = parsed[k]; });
   return merged;
 }
+// Local persistence is an optional cache; full photo records can exceed iOS limits.
+function persistLocalStateSafely() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch (error) {
+    console.warn('Armazenamento local indisponível; a sincronização na nuvem continua:', error);
+    return false;
+  }
+}
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  persistLocalStateSafely();
   if (!suppressCloudSave && cloudUser) scheduleCloudSave();
 }
 
@@ -1235,10 +1245,12 @@ async function cloudInitialSync() {
   if (hasCloudData) {
     suppressCloudSave = true;
     state = mergeDefault(data.state);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    persistLocalStateSafely();
     suppressCloudSave = false;
   } else {
-    await saveStateToCloud();
+    // An absent cloud record is not proof that the local cache has complete data.
+    // Do not automatically push default state during login.
+    console.info('Registro de nuvem vazio: aguardando alteração do usuário antes de gravar.');
   }
 }
 
@@ -1251,7 +1263,7 @@ function subscribeCloud() {
       if (!payload.new?.state) return;
       suppressCloudSave = true;
       state = mergeDefault(payload.new.state);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      persistLocalStateSafely();
       suppressCloudSave = false;
       if (document.getElementById('app') && !document.getElementById('app').classList.contains('hidden')) renderAll();
     })
@@ -1286,7 +1298,7 @@ async function loadMobileIntakesFromCloud() {
     status: r.status || 'Pendente',
     createdAt: r.created_at
   }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  persistLocalStateSafely();
 }
 
 function subscribeMobileIntakes() {
