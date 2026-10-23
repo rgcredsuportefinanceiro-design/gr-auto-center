@@ -1235,7 +1235,10 @@ async function saveStateToCloud() {
   if (!cloudUser || suppressCloudSave) return;
   const payload = { user_id: cloudUser.id, state, updated_at: new Date().toISOString() };
   const { error } = await cloud.from('gr_app_state').upsert(payload, { onConflict: 'user_id' });
-  if (error) console.error('Erro ao salvar na nuvem:', error.message);
+  if (error) {
+    console.error('Erro ao salvar na nuvem:', error.message);
+    throw error;
+  }
 }
 
 async function cloudInitialSync() {
@@ -1376,7 +1379,15 @@ async function ensureCloudSession() {
       return;
     }
     cloudUser = data.user;
-    await cloudInitialSync(); subscribeCloud();
+    try {
+      await cloudInitialSync();
+      await loadMobileIntakesFromCloud();
+      subscribeCloud();
+      subscribeMobileIntakes();
+    } catch (syncError) {
+      msg.textContent = 'Falha ao sincronizar: ' + (syncError?.message || syncError);
+      return;
+    }
     document.getElementById('cloud-auth-overlay')?.remove();
     finishInit();
   });
@@ -1388,7 +1399,16 @@ async function ensureCloudSession() {
     const { data, error } = await cloud.auth.signUp({ email, password });
     if (error) { msg.style.color='#b42318'; msg.textContent='Não foi possível criar: ' + error.message; return; }
     if (!data.session) { msg.style.color='#1268b8'; msg.textContent='Conta criada. Confira seu e-mail para confirmar e depois clique em ENTRAR.'; return; }
-    cloudUser=data.user; await cloudInitialSync(); subscribeCloud();
+    cloudUser=data.user;
+    try {
+      await cloudInitialSync();
+      await loadMobileIntakesFromCloud();
+      subscribeCloud();
+      subscribeMobileIntakes();
+    } catch (syncError) {
+      msg.textContent = 'Falha ao sincronizar: ' + (syncError?.message || syncError);
+      return;
+    }
     document.getElementById('cloud-auth-overlay')?.remove();
     finishInit();
   });
@@ -3097,6 +3117,7 @@ async function handleMobileIntakeSubmit(e) {
     };
     state.budgets.unshift(budget);
     await saveStateToCloud();
+    persistLocalStateSafely();
     await loadMobileIntakesFromCloud();
 
     e.target.reset();
@@ -3106,10 +3127,9 @@ async function handleMobileIntakeSubmit(e) {
     msg.textContent = '✓ Cliente cadastrado e orçamento aberto. Continue na aba ORÇAMENTO.';
   } catch (err) {
     console.error(err);
-    msg.textContent = 'Não foi possível salvar cliente e OS. Verifique a internet e tente novamente.';
+    msg.textContent = 'Falha ao sincronizar cliente/orçamento: ' + (err?.message || String(err));
   } finally {
     if (btn) btn.disabled = false;
-    setTimeout(() => { if (msg) msg.textContent = ''; }, 6000);
   }
 }
 
