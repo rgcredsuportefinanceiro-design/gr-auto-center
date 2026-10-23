@@ -1351,7 +1351,18 @@ async function ensureCloudSession() {
     const email = document.getElementById('cloud-email').value.trim();
     const password = document.getElementById('cloud-password').value;
     const { data, error } = await cloud.auth.signInWithPassword({ email, password });
-    if (error) { msg.textContent = 'Não foi possível entrar: ' + error.message; return; }
+    if (error) {
+      const code = String(error.code || '').toLowerCase();
+      const message = String(error.message || '').toLowerCase();
+      if (code === 'invalid_credentials' || message.includes('invalid login credentials')) {
+        msg.textContent = 'E-mail ou senha da nuvem incorretos. Use a mesma conta cadastrada no computador.';
+      } else if (message.includes('email not confirmed')) {
+        msg.textContent = 'Este e-mail ainda não foi confirmado. Verifique a caixa de entrada e confirme o cadastro.';
+      } else {
+        msg.textContent = 'Não foi possível entrar na nuvem: ' + error.message;
+      }
+      return;
+    }
     cloudUser = data.user;
     await cloudInitialSync(); subscribeCloud();
     document.getElementById('cloud-auth-overlay')?.remove();
@@ -1445,7 +1456,9 @@ async function init() {
     if (ready) finishInit();
   } catch (err) {
     console.error(err);
-    alert('Não foi possível conectar à nuvem. Verifique sua internet e tente novamente.');
+    console.error('Falha de inicialização da nuvem:', err);
+    const detail = String(err?.message || err || '');
+    alert('Não foi possível iniciar a sincronização da nuvem.' + (detail ? '\n\nDetalhe: ' + detail : '') + '\n\nSe a tela de login aparecer, use o mesmo e-mail e senha da nuvem cadastrados no computador.');
     cloudAuthOverlay();
   }
 }
