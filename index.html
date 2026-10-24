@@ -466,6 +466,17 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
 
 .mobile-intake-shell{min-height:100vh;background:#eef3f8;padding:16px;box-sizing:border-box;font-family:Arial,sans-serif}.mobile-intake-card{max-width:620px;margin:0 auto;background:#fff;border-radius:18px;box-shadow:0 12px 35px rgba(10,39,68,.12);padding:18px}.mobile-intake-brand{font-size:25px;font-weight:900;color:#1068b8}.mobile-intake-sub{margin:4px 0 18px;color:#66788a;font-weight:700}.mobile-intake-form{display:grid;gap:13px}.mobile-intake-form label{display:grid;gap:6px;font-size:14px;font-weight:800;color:#29445d}.mobile-intake-form input,.mobile-intake-form textarea{width:100%;box-sizing:border-box;border:1px solid #cfd9e3;border-radius:11px;padding:13px;font-size:16px;background:#fff;color:#15263a!important;-webkit-text-fill-color:#15263a!important;caret-color:#1068b8}.mobile-intake-form input::placeholder,.mobile-intake-form textarea::placeholder{color:#7a8a99!important;opacity:1;-webkit-text-fill-color:#7a8a99!important}.mobile-intake-form input:focus,.mobile-intake-form textarea:focus{outline:2px solid #1068b8;outline-offset:1px;border-color:#1068b8}.mobile-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mobile-photo-label{border:1px dashed #77a9d5;padding:13px;border-radius:12px;background:#f6fbff}.mobile-photo-status{font-size:13px;color:#66788a}.mobile-save-btn{border:0;border-radius:12px;padding:15px;background:#1068b8;color:#fff;font-weight:900;font-size:15px}.mobile-secondary-btn{border:1px solid #b8c7d4;border-radius:12px;padding:12px;background:#fff;color:#40566b;font-weight:800}.mobile-intake-msg{min-height:20px;text-align:center;color:#16723b;font-weight:800}.mobile-intakes-list{display:grid;gap:10px}.mobile-intake-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px}.mobile-intake-row-main{display:grid;gap:3px}.mobile-intake-row-main span,.mobile-intake-row-main small{color:var(--muted)}.mobile-intake-row-actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:760px){.mobile-intake-row{align-items:flex-start;flex-direction:column}}.mobile-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 16px}.mobile-tab-btn{border:1px solid #b9c9d8;background:#f5f8fb;color:#29445d;border-radius:10px;padding:11px 6px;font-weight:900;font-size:13px}.mobile-tab-btn.active{background:#1068b8;color:#fff;border-color:#1068b8}.mobile-tab-panel{display:none}.mobile-tab-panel.active{display:block}.mobile-section-title{font-size:18px;font-weight:900;color:#17324d;margin:4px 0 12px}.mobile-card-list{display:grid;gap:11px}.mobile-os-card{border:1px solid #d5e0ea;border-radius:13px;padding:13px;background:#fff;box-shadow:0 4px 14px rgba(10,39,68,.06);display:grid;gap:7px}.mobile-os-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.mobile-os-card strong{color:#17324d}.mobile-os-meta{font-size:13px;color:#5f7182;line-height:1.45}.mobile-os-items{font-size:13px;color:#29445d;background:#f5f8fb;padding:9px;border-radius:9px}.mobile-action-row{display:flex;gap:8px;flex-wrap:wrap}.mobile-action-row button{flex:1;border:0;border-radius:10px;padding:11px;font-weight:900}.mobile-btn-primary{background:#1068b8;color:#fff}.mobile-btn-success{background:#16723b;color:#fff}.mobile-btn-warn{background:#e8a317;color:#17212b}.mobile-empty{padding:18px;text-align:center;color:#66788a;background:#f5f8fb;border-radius:12px}
 
+ 
+.nav-group-label{font-size:10px;letter-spacing:1.3px;font-weight:900;color:#8faed4;margin:18px 12px 7px;padding-top:10px;border-top:1px solid rgba(130,166,208,.17)}
+.sidebar-nav .nav-btn{border-radius:10px;text-align:left}
+.sidebar-nav .nav-btn.active{box-shadow:inset 3px 0 0 #5caaff}
+.gr-ledger-head{padding:16px 18px;border-radius:15px;background:rgba(11,60,115,.2);border:1px solid rgba(102,164,238,.28);margin-bottom:16px}
+.gr-ledger-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
+.gr-ledger-metric{background:var(--panel-soft);border:1px solid var(--line);border-radius:13px;padding:15px;min-width:0}
+.gr-ledger-metric small{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.gr-ledger-metric strong{font-size:22px;overflow-wrap:anywhere}
+@media(max-width:950px){.gr-ledger-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.gr-ledger-metric strong{font-size:18px}}
 </style>
 </head>
 <body>
@@ -505,19 +516,19 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
       </div>
 
       <nav id="sidebar-nav" class="sidebar-nav">
-        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-        <button class="nav-btn" data-view="clientes">Clientes</button>
+        <div class="nav-group-label">VISÃO GERAL</div><button class="nav-btn active" data-view="dashboard">Painel Geral</button>
+        <div class="nav-group-label">ATENDIMENTO E OFICINA</div><button class="nav-btn" data-view="clientes">Clientes e Veículos</button>
         <button class="nav-btn" data-view="servicos">Serviços e Valores</button>
         <button class="nav-btn" data-view="orcamentos">Orçamentos</button>
         <button class="nav-btn" data-view="ordens">Ordens de Serviço</button>
         <button class="nav-btn" data-view="agenda">Agenda</button>
-        <button class="nav-btn" data-view="estoque">Estoque / Peças</button>
-        <button class="nav-btn" data-view="caixa">Caixa</button>
-        <button class="nav-btn finance-nav" data-view="financeiro">Investimentos / Gastos</button>
+        <div class="nav-group-label">PRODUTOS E ESTOQUE</div><button class="nav-btn" data-view="estoque">Estoque e Peças</button>
+        <div class="nav-group-label">GESTÃO FINANCEIRA</div><button class="nav-btn" data-view="caixa">Fluxo de Caixa</button>
+        <button class="nav-btn finance-nav" data-view="financeiro">Despesas e Aportes</button>
         <button class="nav-btn" data-view="pagar">Contas a Pagar</button>
         <button class="nav-btn" data-view="receber">Contas a Receber</button>
-        <button class="nav-btn" data-view="vendas">Vendas / Painel</button>
-        <button class="nav-btn admin-only" data-view="usuarios">Usuários</button>
+        <button class="nav-btn" data-view="vendas">Vendas Realizadas</button>
+        <div class="nav-group-label">ADMINISTRAÇÃO</div><button class="nav-btn admin-only" data-view="usuarios">Usuários</button>
         <button class="nav-btn" data-view="backup">Backup / Configurações</button>
       </nav>
 
@@ -836,7 +847,7 @@ th { background: rgba(255,255,255,.04); position: sticky; top: 0; z-index:1; }
         </div>
       </section>
 
-      <section id="caixa-view" class="view">
+      <section id="caixa-view" class="view"><div id="gr-ledger-summary" class="gr-ledger-head"></div>
         <div class="page-grid two-one">
           <div class="panel">
             <div class="panel-head"><h3>Lançamento no Caixa</h3><button class="ghost-btn small" data-reset-form="caixa-form">Limpar</button></div>
@@ -1923,6 +1934,7 @@ function renderAll() {
   renderAgenda();
   renderInventory();
   renderCash();
+  renderProfessionalCash();
   renderFinances();
   renderPayables();
   renderPayablesCalendar();
@@ -2051,6 +2063,21 @@ function renderInventory() {
   });
 }
 
+function renderProfessionalCash() {
+ const root = document.getElementById('gr-ledger-summary'); if (!root) return;
+ const month = today().slice(0,7);
+ const cash = (state.cash || []).filter(c => String(c.data || '').slice(0,7) === month);
+ const entries = cash.filter(c=>c.tipo==='Entrada').reduce((v,c)=>v+Number(c.valor||0),0);
+ const exits = cash.filter(c=>c.tipo==='Saída').reduce((v,c)=>v+Number(c.valor||0),0);
+ const pending = (state.payables||[]).filter(p=>p.status!=='Pago'&&p.status!=='Cancelado').reduce((v,p)=>v+Number(p.valor||0),0);
+ const investments = (state.finances||[]).filter(f=>f.tipo==='Aporte / Investimento'&&String(f.data||'').slice(0,7)===month).reduce((v,f)=>v+Number(f.valor||0),0);
+ root.innerHTML = '<strong>Fluxo de Caixa · '+escapeHtml(month.split('-').reverse().join('/'))+'</strong><p style="margin:7px 0 0;color:var(--muted)">Somente movimentações do Caixa. Vendas e OS não são somadas novamente. Aportes não são faturamento.</p><div class="gr-ledger-grid">'+
+ '<div class="gr-ledger-metric"><small>Entradas no caixa</small><strong>'+currency(entries)+'</strong></div>'+
+ '<div class="gr-ledger-metric"><small>Saídas no caixa</small><strong>'+currency(exits)+'</strong></div>'+
+ '<div class="gr-ledger-metric"><small>Saldo movimentado</small><strong>'+currency(entries-exits)+'</strong></div>'+
+ '<div class="gr-ledger-metric"><small>Contas pendentes (total)</small><strong>'+currency(pending)+'</strong></div></div>'+
+ '<small style="color:var(--muted)">Aportes registrados neste mês: '+currency(investments)+'. Confira as referências dos recebimentos antigos para localizar duplicidades.</small>';
+}
 function renderCash() {
   const term = qs('caixa-search').value.trim().toLowerCase();
   const ordered = state.cash.slice().sort((a,b) => (a.data > b.data ? 1 : -1));
